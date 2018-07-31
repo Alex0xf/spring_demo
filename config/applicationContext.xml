@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	default-lazy-init="true"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.1.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.1.xsd">
+    <!-- default-lazy-init="true"全局懒初始化 可以把特殊的手动打开-->
+	
+	<context:component-scan base-package="com.javasm"></context:component-scan>
+	<context:annotation-config></context:annotation-config>
+	<aop:aspectj-autoproxy proxy-target-class="true"></aop:aspectj-autoproxy>
+	
+	<!-- 方式一。BookModel注入到spring容器中 没有调用也会被初始化 除非设置lazy-init="true"懒加载 -->
+	<bean id="bookmodel" class="com.javasm.book.model.BookModel" scope="singleton" init-method="book_init" destroy-method="book_destroy"></bean>
+	<!-- 方式二。工厂的静态方法 -->
+	<bean id="bookmodel_static_factory" class="com.javasm.book.factory.BookModelFactory" factory-method="creatStaticBookModel"></bean>
+	<!-- 方式三。工厂的非静态方法 需要先new一个对象 然后调用对象的方法 -->
+	<bean id="bookmodel_factory" class="com.javasm.book.factory.BookModelFactory"></bean>
+	<bean id="bookmodel_factory_method" factory-bean="bookmodel_factory" factory-method="creatBookModel"></bean>
+	
+	<!-- 其他方式一。调用有参构造声明一个bean -->
+	<bean id="bookmodel_cons" class="com.javasm.book.model.BookModel" >
+		<constructor-arg index="0" type="int" value="11"></constructor-arg>
+		<constructor-arg index="1" type="java.lang.String" value="中庸"></constructor-arg>
+		<constructor-arg index="2" type="double" value="33.9"></constructor-arg>
+	</bean>
+	<!-- 其他方式二。先调用无参构造 然后调用对象的setter方法 存值 -->
+	<bean id="bookmodel_setter" class="com.javasm.book.model.BookModel">
+		<property name="bid" value="22"></property>
+		<property name="bookName" value="大学"></property>
+		<property name="price" value="44.9"></property>
+		<!-- ref 指向到另外一个bean -->
+		<property name="author" ref="authorModel"></property>
+		<property name="chapters">
+			<list>
+				<value>第一章</value>
+				<value>第二章</value>
+				<value>第三章</value>
+			</list>
+		</property>
+		<property name="authorList">
+			<list>
+				<ref bean="authorModel"/>
+			</list>
+		</property>
+	</bean>
+	<bean id="authorModel" class="com.javasm.book.model.AuthorModel">
+		<property name="authorName">
+			<value>高涵</value>
+		</property>
+	</bean>
+	
+	<!-- 测试xml里写aop -->
+	<bean id="timmerAspect" class="com.javasm.pay.aspect.TimmerAspect"></bean>
+	<aop:config>
+		<aop:aspect id="timmer" ref="timmerAspect">
+			<!--* com.javasm.*.service.*.update*(..) -->
+			<!-- com.javasm.book.service.IBookService.findall() -->
+			<aop:pointcut expression="execution(* com.javasm.pay.service.IPayService.pay(..))" id="xmlAspect"/>
+			<aop:before method="before" pointcut-ref="xmlAspect"/>
+			<aop:after-returning method="after" pointcut-ref="xmlAspect"/>
+			<!-- 抛出异常后会被执行的aop -->
+			<aop:after-throwing method="handleException" pointcut-ref="xmlAspect"/>
+			<aop:after method="finallyMethod" pointcut-ref="xmlAspect"/>
+		</aop:aspect>
+	</aop:config>
+</beans>
